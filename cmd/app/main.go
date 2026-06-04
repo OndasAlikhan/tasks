@@ -34,7 +34,19 @@ func main() {
 
 	_ = businessLogic(usersRepo, tasksRepo, commentsRepo)
 
-	go worker(ctx, tasksRepo.LockUpdateStatus)
+	go worker(ctx, func(ctx context.Context) (err error) {
+		users, err := usersRepo.ShowUsersWithTheirTasksComments(ctx)
+		slog.Info("users before")
+		printUsers(users)
+
+		tasksRepo.LockUpdateStatus(ctx)
+
+		users, err = usersRepo.ShowUsersWithTheirTasksComments(ctx)
+		slog.Info("users after")
+		printUsers(users)
+
+		return err
+	})
 
 	<-ctx.Done()
 	cleanUp(db)
@@ -150,4 +162,10 @@ func businessLogic(usersRepo *repos.UsersRepo, tasksRepo *repos.TasksRepo, comme
 	slog.Info("created comment", "id", commentID, "comment", comment)
 
 	return nil
+}
+
+func printUsers(users []models.UserAggregated) {
+	for _, user := range users {
+		slog.Info("", "user", user)
+	}
 }
