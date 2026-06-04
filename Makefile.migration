@@ -1,0 +1,8 @@
+.PHONY: mig-up mig-down mig-create
+
+mig/up:
+	goose -dir ./migrations postgres "$(DATABASE_URL)" up
+mig/down:
+	goose -dir ./migrations postgres "$(DATABASE_URL)" down
+mig/create:
+	goose -dir ./migrations create $(name) sql

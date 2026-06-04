@@ -1,0 +1,16 @@
+.PHONY: docker-build docker-up docker-down docker-rebuild docker-run
+
+docker/build:
+	docker compose build
+
+docker/up:
+	docker compose up -d
+
+docker/down:
+	docker compose down
+
+docker/rebuild:
+	docker compose build --no-cache
+
+docker/run:
+	docker compose up --build -d
