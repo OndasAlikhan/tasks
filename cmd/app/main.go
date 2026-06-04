@@ -34,7 +34,7 @@ func main() {
 
 	_ = businessLogic(usersRepo, tasksRepo, commentsRepo)
 
-	go worker(ctx, usersRepo)
+	go worker(ctx, tasksRepo.LockUpdateStatus)
 
 	<-ctx.Done()
 	cleanUp(db)
@@ -45,14 +45,18 @@ func cleanUp(db *pgxpool.Pool) {
 	db.Close()
 }
 
-func worker(ctx context.Context, usersRepo *repos.UsersRepo) {
+func worker(ctx context.Context, runJob func(ctx context.Context) error) {
 	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
 
 	for {
 		select {
 		case <-ticker.C:
-
+			err := runJob(ctx)
+			if err != nil {
+				slog.Error("error in worker runJob", err)
+			}
+			slog.Info("locked and updated tasks")
 		case <-ctx.Done():
 			return
 		}
@@ -144,13 +148,6 @@ func businessLogic(usersRepo *repos.UsersRepo, tasksRepo *repos.TasksRepo, comme
 	}
 	comment, err = commentsRepo.Find(ctx, commentID)
 	slog.Info("created comment", "id", commentID, "comment", comment)
-
-	// locking and updating
-	err = tasksRepo.LockUpdateStatus(ctx)
-	if err != nil {
-		return err
-	}
-	slog.Info("locked and updated tasks in transaction")
 
 	return nil
 }
